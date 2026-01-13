@@ -1,5 +1,0 @@
-Mode: FUNC_085_HOLD  Corner: FUNC_0.85V_HOLD
-Scenario: FUNC_0.85V_HOLD
-Constraint: max_capacitance
-
-Net,Required Capacitance,Actual Capacitance,Slack,Violation
