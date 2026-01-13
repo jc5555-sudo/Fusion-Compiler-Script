@@ -12,8 +12,8 @@ sub classify_group {
     my $text = join " ", $net, @$pins_ref;
 
     return "SRAM"          if $text =~ /nibble/i;
-    return "Power_Switch"  if $text =~ /piso_secure_.*\/power_ack_signals_.*/i;
-    return "Level_Shifter" if $text =~ /bit_secure_.*power_ack_signals_.*/i;
+    return "Power_Switch"  if $text =~ /piso_secure.*power_ack_signals/i;
+    return "Level_Shifter" if $text =~ /bit_secure_.*power_ack_signals/i;
     return "INV"           if $text =~ /(HFSINV|_INV_)/i;
     return "BUF"           if $text =~ /(HFSBUF|ZBUF|BUF_)/i;
     return "mem"
@@ -27,9 +27,7 @@ sub classify_group {
 # HTML helpers
 # ===============================
 sub html_header {
-    my ($title_lines) = @_;
-
-    return <<"HTML";
+    return <<'HTML';
 <!DOCTYPE html>
 <html>
 <head>
@@ -43,11 +41,6 @@ tr.NET { background: #eef; font-weight: bold; }
 </style>
 </head>
 <body>
-
-<pre>
-$title_lines
-</pre>
-
 <table>
 <tr>
 <th>Category</th><th>Type</th><th>Name</th>
@@ -61,7 +54,7 @@ sub html_footer {
 }
 
 # ===============================
-# Flush helper
+# Flush helper (CORRECT)
 # ===============================
 sub flush_group {
     my ($CSV, $HTML, $net, $pins_ref, $rows_ref) = @_;
@@ -99,40 +92,16 @@ for my $file (@ARGV) {
     open my $CSV, '>', $out_csv or die $!;
     open my $HTML,'>', $out_html or die $!;
 
-    my @title_lines;
-    my @data_lines;
-
-    # ---------------------------
-    # Read file once
-    # ---------------------------
-    while (my $line = <$IN>) {
-        chomp $line;
-        if ($line =~ /^(Mode:|Scenario:|Constraint:)/) {
-            push @title_lines, $line;
-        } elsif ($line =~ /,/ && $line !~ /^Total/i) {
-            push @data_lines, $line;
-        }
-    }
-
-    close $IN;
-
-    my $title_text = join("\n", @title_lines);
-
-    # ---------------------------
-    # Write CSV title
-    # ---------------------------
-    print $CSV "$_\n" for @title_lines;
-    print $CSV "\n";
     print $CSV "Category,Type,Name,Required,Actual,Slack,Violation\n";
-
-    # ---------------------------
-    # Write HTML title
-    # ---------------------------
-    print $HTML html_header($title_text);
+    print $HTML html_header();
 
     my ($current_net, @current_pins, @rows);
 
-    for my $line (@data_lines) {
+    while (my $line = <$IN>) {
+        chomp $line;
+        next unless $line =~ /,/;
+        next if $line =~ /^(Mode|Scenario|Constraint|Total)/i;
+
         my @f = split /,/, $line;
         next unless @f >= 5;
 
@@ -152,6 +121,7 @@ for my $file (@ARGV) {
 
     print $HTML html_footer();
 
+    close $IN;
     close $CSV;
     close $HTML;
 

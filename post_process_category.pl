@@ -28,43 +28,43 @@ sub process_file {
     # ---------------------------
     while (my $line = <$IN>) {
         print $OUT $line;
-        last if $line =~ /^Net,/;
+        last if $line =~ /^\s*Net\s*,/i;
     }
 
     # ---------------------------
     # Classification rules
-    # ORDER MATTERS
     # ---------------------------
     sub classify_group {
         my ($net, $pins_ref) = @_;
 
         my $text = $net . " " . join(" ", @$pins_ref);
 
-        # 1️⃣ SRAM (highest priority)
+        # 1️⃣ SRAM
         return "SRAM"
             if $text =~ /nibble/i;
 
-        # 2️⃣ Power Switch
+        # 2️⃣ Power Switch (piso_secure_*/power_ack_signals_*)
         return "Power_Switch"
-            if $text =~ /piso_secure.*\/power_ack_signals.*/i;
+            if $text =~ /piso_secure_.*\/power_ack_signals_.*/i;
 
-        # 3️⃣ Level Shifter
+        # 3️⃣ Level Shifter (bit_secure_*power_ack_signals_*)
         return "Level_Shifter"
-            if $text =~ /bitsecure_.*_power_ack_signals.*/i;
+            if $text =~ /bit_secure_.*power_ack_signals_.*/i;
 
-        # 4️⃣ Buffers
+        # 4️⃣ Buffer
         return "BUF"
             if $text =~ /(HFSBUF|ZBUF|BUF_)/i;
 
-        # 5️⃣ Inverters
+        # 5️⃣ Inverter
         return "INV"
             if $text =~ /(HFSINV|INV_)/i;
 
-        # 6️⃣ Memory-facing logic (explicit only)
+        # 6️⃣ Memory-facing (explicit only)
         return "mem"
-            if $text =~ /(sync_datafrommem|pout2mem|addr2mem|\bmem\b)/i;
+            if ($text =~ /(sync_datafrommem|pout2mem|addr2mem|\bmem\b)/i)
+            && ($text !~ /ISO_SIPO/i);
 
-        # 7️⃣ Fallback
+        # 7️⃣ Others
         return "others";
     }
 
@@ -96,7 +96,6 @@ sub process_file {
 
     # ---------------------------
     # Output grouped data
-    # SRAM first, others last
     # ---------------------------
     for my $cat (qw(SRAM Power_Switch Level_Shifter BUF INV mem others)) {
         next unless exists $groups{$cat};
@@ -112,4 +111,3 @@ sub process_file {
 
     print "Processed: $input -> $output\n";
 }
-
