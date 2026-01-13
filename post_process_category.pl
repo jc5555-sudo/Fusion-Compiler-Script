@@ -14,7 +14,7 @@ print "Done. All files processed.\n";
 sub process_file {
     my ($input) = @_;
 
-    my $output = "post_process_$input";
+    my $output = "post_process_simplify_$input";
 
     open my $IN,  '<', $input  or die "Cannot open $input\n";
     open my $OUT, '>', $output or die "Cannot write $output\n";
